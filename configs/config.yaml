@@ -1,9 +1,50 @@
-defaults:
-  - generator: generator
+model:
+  use_y_conditioning: False # Use label conditioning (i.e. guided diffusion)
+  learn_sigma: False
+  diffusion_steps: 1000
+  noise_schedule: linear
+  timestep_respacing:
+  loss: mse
+  target: noise #predict_x_start
+  rescale_timesteps: False
+  rescale_learned_sigmas: False
 
-ckpt: ""
-output: "outputs"
-batch_size: 50
-guidance_scale: 3.0
-timestep_respacing: 250
-runs_per_sample: 20
+dataset:
+  image_path: example_data/forecast/
+  label_path: example_data/forecast/
+  size: 128
+  n_classes:
+  n_channels: 1
+  from_uv: False
+  real_data: False
+  power: 2
+  use_zeros: True
+
+generator:
+  ckpt: 02-09-2024-h19-m13_mse_ddpm_toy_run/last_epoch=29_step=3150.ckpt
+  output: results/
+  guidance_scale: 3.0
+  timestep_respacing: 250
+  runs_per_sample: 1
+  include_val: False
+  generation_mode: ddpm # ddpm, ddim, langevin, annlangevin
+
+trainer:
+  auto_lr: False
+  batch_size: 8
+  n_workers: 3
+  epochs: 30
+  eval_every: 1
+  accumulate_grad_batches: 1
+  fp16: False # Convert to 16-bits floating point
+  clip_denoised: True
+  ema_rate: 0.999 # Exponential Moving Average Rate for updating the model parameters at step (?)
+  lr: 1e-5 # Learning Rate
+  wd: "0" # Weight Decay
+  schedule_sampler: uniform
+  fine_tune_from: False
+  checkpoint: checkpoints/
+  logging_dir: lightning_logs
+
+project_name: ILLUSTRIS
+comment: toy_run # Comment to use for the logger (W&B)

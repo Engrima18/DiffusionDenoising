@@ -4,7 +4,6 @@ from pathlib import Path
 from tqdm import tqdm
 import numpy as np
 import torch
-
 from src.trainer import GeneratorModule
 from src.utils import get_config
 
@@ -15,30 +14,29 @@ def torch_to_image_numpy(tensor: torch.Tensor):
     return im_np
 
 
-@hydra.main(config_path="configs", config_name="config")
+@hydra.main(config_path="configs", config_name="config", version_base="1.3")
 def main(cfg: DictConfig) -> None:
     print(OmegaConf.to_yaml(cfg))  # Optional: To print the full config for debugging
-    device = "mps"  # if torch.cuda.is_available() else 'cpu'
-    config = get_config(cfg.generator)
-    config["batch_size"] = cfg.batch_size
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    runs_per_sample = cfg.generator.runs_per_sample
 
-    runs_per_sample = cfg.runs_per_sample
+    path_checkpoint = Path(cfg.trainer.checkpoint + cfg.generator.ckpt)
 
-    path_checkpoint = cfg.ckpt
     output_path = Path(
-        cfg.output
-        + f"_power{config['project_name']}"
-        + f"_power{config['dataset']['power']}"
+        cfg.generator.output
+        + f"{cfg.project_name}"
+        + f"_power{cfg['dataset']['power']}"
     )
     output_path.mkdir(exist_ok=True, parents=True)
 
     module = GeneratorModule.load_from_checkpoint(
         checkpoint_path=path_checkpoint,
         strict=False,
-        config=config,
-        use_fp16=config["fp16"],
-        timestep_respacing=str(cfg.timestep_respacing),
+        config=cfg,
+        use_fp16=cfg.trainer.fp16,
+        timestep_respacing=str(cfg.generator.timestep_respacing),
     )
+    module = module.to(device)
     module.eval()
 
     diffusion = module.diffusion
@@ -51,23 +49,32 @@ def main(cfg: DictConfig) -> None:
         model_out = model(combined, ts, **kwargs)
         eps, rest = model_out[:, :3], model_out[:, 3:]
         cond_eps, uncond_eps = torch.split(eps, len(eps) // 2, dim=0)
-        half_eps = uncond_eps + cfg.guidance_scale * (cond_eps - uncond_eps)
+        half_eps = uncond_eps + cfg.generator.guidance_scale * (cond_eps - uncond_eps)
         eps = torch.cat([half_eps, half_eps], dim=0)
         return torch.cat([eps, rest], dim=1)
 
     shape = (
-        cfg.batch_size * 2,
+        cfg.trainer.batch_size * 2,
         module.n_channels,
         module.size_image,
         module.size_image,
     )
 
     # generate images
-    dls = [module.val_dataloader(), module.test_dataloader()]
-    names = ["val", "test"]
+    dls, names = (
+        ([module.val_dataloader(), module.test_dataloader()], ["val", "test"])
+        if cfg.generator.include_val
+        else ([module.test_dataloader()], ["test"])
+    )
+    try:
+        number_of_examples = (len(dls[0]) + len(dls[1])) * cfg.trainer.batch_size
+    except:
+        number_of_examples = len(dls[0]) * cfg.trainer.batch_size
+
+    print(f"Total number of examples: {number_of_examples}")
 
     for i, dl in enumerate(dls):
-        for batch_idx, batch in tqdm(enumerate(dl)):
+        for batch_idx, batch in tqdm(enumerate(dl), colour="blue"):
             print(batch_idx)
 
             images = []
@@ -95,8 +102,8 @@ def main(cfg: DictConfig) -> None:
                         clip_denoised=True,
                         progress=False,
                         cond_fn=None,
-                    )[: cfg.batch_size]
-                    dirty_noisy = dirty_noisy[: cfg.batch_size]
+                    )[: cfg.trainer.batch_size]
+                    dirty_noisy = dirty_noisy[: cfg.trainer.batch_size]
 
                 im_in = torch_to_image_numpy(im_in)
                 im_out = torch_to_image_numpy(im_out)

@@ -87,6 +87,8 @@ def create_gaussian_diffusion(
             loss_type = gd.LossType.RESCALED_MSE
     elif loss == "mse":
         loss_type = gd.LossType.MSE
+    elif loss == "ms":
+        loss_type = gd.LossType.MATCHING_SCORE
     if not timestep_respacing:
         timestep_respacing = [steps]
     return SpacedDiffusion(

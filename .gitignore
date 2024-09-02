@@ -164,6 +164,7 @@ cython_debug/
 # Logging and checkpoint directories
 lightning_logs/
 checkpoints/
+outputs/
 
 # Large astro datasets
 *.fits

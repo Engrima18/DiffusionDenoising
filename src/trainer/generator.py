@@ -38,7 +38,7 @@ class GeneratorModule(pl.LightningModule):
         real_data = config["dataset"]["real_data"]
         self.size_image = config["dataset"]["size"]
         self.n_channels = config["dataset"]["n_channels"]
-        self.clip_denoised = config["clip_denoised"]
+        self.clip_denoised = config["trainer"]["clip_denoised"]
         self.loss = config["model"]["loss"]
         use_zeros = config["dataset"]["use_zeros"]
         from_uv = config["dataset"]["from_uv"]
@@ -54,8 +54,10 @@ class GeneratorModule(pl.LightningModule):
         )
 
         # training parameters
-        self.hparams.batch_size = config["batch_size"]  # set start batch_size
-        self.hparams.lr = eval(config["lr"])
+        self.hparams.batch_size = config["trainer"][
+            "batch_size"
+        ]  # set start batch_size
+        self.hparams.lr = config["trainer"]["lr"]
         self.hparams.loss = config["model"]["loss"]
         self.hparams.y_cond = config["model"]["use_y_conditioning"]
 
@@ -69,10 +71,12 @@ class GeneratorModule(pl.LightningModule):
         params["use_y_conditioning"] = config["model"]["use_y_conditioning"]
         params["timestep_respacing"] = timestep_respacing
         params["diffusion_steps"] = config["model"]["diffusion_steps"]
+        params["loss"] = config["model"]["loss"]
+        params["learn_sigma"] = config["model"]["learn_sigma"]
 
         self.model, self.diffusion = create_model_and_diffusion(**params)
 
-        self.ema_rate = config["ema_rate"]
+        self.ema_rate = config["trainer"]["ema_rate"]
         self.model_ema = copy.deepcopy(self.model).eval()
 
         if use_fp16:
@@ -80,7 +84,7 @@ class GeneratorModule(pl.LightningModule):
 
         # load sampler
         self.schedule_sampler = create_named_schedule_sampler(
-            config["schedule_sampler"], self.diffusion
+            config["trainer"]["schedule_sampler"], self.diffusion
         )
 
     def get_dataloader(self, mode: str) -> DataLoader:
@@ -91,7 +95,7 @@ class GeneratorModule(pl.LightningModule):
         """
 
         bs = self.hparams.batch_size
-        n_workers = self.config["n_workers"]
+        n_workers = self.config["trainer"]["n_workers"]
 
         if mode == "train":
             return self.make_dl.get_data_loader_train(
@@ -119,7 +123,7 @@ class GeneratorModule(pl.LightningModule):
 
     def configure_optimizers(self):
         lr = self.hparams.lr
-        wd = eval(self.config["wd"])
+        wd = eval(self.config["trainer"]["wd"])
         opt = optim.AdamW(self.model.parameters(), lr=lr, weight_decay=wd)
         lr_scheduler = torch.optim.lr_scheduler.CyclicLR(
             opt, base_lr=lr, max_lr=1e-3, step_size_up=20, mode="triangular2"

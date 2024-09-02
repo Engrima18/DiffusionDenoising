@@ -83,7 +83,7 @@ class LossType(enum.Enum):
     # Rescale to estimate the full VLB
     RESCALED_KL = enum.auto()
     # Score loss
-    MS = enum.auto()
+    MATCHING_SCORE = enum.auto()
 
     def is_vb(self):
         return self == LossType.KL or self == LossType.RESCALED_KL
@@ -419,7 +419,7 @@ class GaussianDiffusion:
         model_kwargs=None,
     ):
         """
-        Sample x_{t-1} from the model at the given timestep.
+        Sample z_{t-1} from the model at the given timestep.
         :param model: the model to sample from.
         :param x: the current tensor at x_{t-1}.
         :param t: the value of t, starting at 0 for the first diffusion step.
@@ -793,6 +793,8 @@ class GaussianDiffusion:
             noise = th.randn_like(x_start)
         x_t = self.q_sample(x_start, t, noise=noise)
 
+        # s_t = th.log(self.p_sample(x_start, t, cond=cond))
+
         terms = {}
 
         # KL loss
@@ -809,8 +811,8 @@ class GaussianDiffusion:
             if self.loss_type == LossType.RESCALED_KL:
                 terms["loss"] *= self.num_timesteps
 
-        # MSE loss
-        elif self.loss_type == LossType.MSE or self.loss_type == LossType.RESCALED_MSE:
+        else:
+
             model_output = model(
                 th.cat([x_t, cond], dim=1), self._scale_timesteps(t), **model_kwargs
             )
@@ -835,34 +837,54 @@ class GaussianDiffusion:
                     # Divide by 1000 for equivalence with initial implementation. Without a factor of 1/1000, the VB term hurts the MSE term.
                     terms["vb"] *= self.num_timesteps / 1000.0
 
-            target = {
-                ModelMeanType.PREVIOUS_X: self.q_posterior_mean_variance(
-                    x_start=x_start, x_t=x_t, t=t
-                )[0],
-                ModelMeanType.START_X: x_start,
-                ModelMeanType.EPSILON: noise,
-            }[self.model_mean_type]
-            assert model_output.shape == target.shape == x_start.shape
-            terms["mse"] = mean_flat((target - model_output) ** 2)
+            # MSE loss
+            if (
+                self.loss_type == LossType.MSE
+                or self.loss_type == LossType.RESCALED_MSE
+            ):
+                target = {
+                    ModelMeanType.PREVIOUS_X: self.q_posterior_mean_variance(
+                        x_start=x_start, x_t=x_t, t=t
+                    )[0],
+                    ModelMeanType.START_X: x_start,
+                    ModelMeanType.EPSILON: noise,
+                }[self.model_mean_type]
+                assert (
+                    model_output.shape == target.shape
+                ), "NN model target and output are of different shape"
+                assert (
+                    model_output.shape == x_start.shape
+                ), "NN model input and output are of different shape"
+                terms["mse"] = mean_flat((target - model_output) ** 2)
+
+            # Matching Score loss
+            elif self.loss_type == LossType.MATCHING_SCORE:
+                assert (
+                    self.model_mean_type == ModelMeanType.EPSILON
+                ), "Matching score models work only when modeling diffusion noise with the NN"
+                target = noise
+                assert (
+                    model_output.shape == target.shape
+                ), "NN model target and output are of different shape"
+                assert (
+                    model_output.shape == x_start.shape
+                ), "NN model input and output are of different shape"
+                diff_var = self.diffusion_variance(x_start=x_start, t=t)
+                assert (
+                    model_output.shape == diff_var.shape
+                ), "Something wrong with the diffusion variance dimensionality... it should be the same of the NN output."
+                # print("Here!", diff_var.shape)
+                # print("Here2!", model_output.shape)
+                terms["mse"] = mean_flat((target - model_output) ** 2 / diff_var)
+                terms["loss"] = terms["mse"]
+
+            else:
+                raise NotImplementedError(self.loss_type)
+
             if "vb" in terms:
                 terms["loss"] = terms["mse"] + terms["vb"]
             else:
                 terms["loss"] = terms["mse"]
-
-        # Scoring loss
-        elif self.loss_type == LossType.MS:
-            model_output = model(
-                th.cat([x_t, cond], dim=1), self._scale_timesteps(t), **model_kwargs
-            )
-            assert (
-                self.model_mean_type == ModelMeanType.EPSILON
-            ), "Matching score models work only when modeling diffusion noise with the NN"
-            target = noise
-            diff_var = self.diffusion_variance(x_start=x_start, t=t)
-            terms["mse"] = mean_flat((target - model_output) ** 2) / diff_var
-            terms["loss"] = terms["mse"]
-        else:
-            raise NotImplementedError(self.loss_type)
 
         return terms
 
