@@ -1,0 +1,34 @@
+batch_size: 8
+n_workers: 3
+epochs: 30
+eval_every: 1 # Every _ epochs take checkpoints
+accumulate_grad_batches: 1
+fp16: False # Convert to 16-bits floating point
+clip_denoised: True
+ema_rate: 0.999 # Exponential Moving Average Rate for updating the model parameters at step (?)
+lr: 1e-5 # Learning Rate
+wd: "0" # Weight Decay
+schedule_sampler: uniform # Resampler Type
+model_fine_tune: False
+checkpoint: checkpoints
+logging_dir: lightning_logs
+project_name: ILLUSTRIS
+
+model:
+  use_y_conditioning: False # Use label conditioning (i.e. guided diffusion)
+  diffusion_steps: 1000
+  loss: ms
+  generation_mode: ddpm # ddpm, ddim, langevin, annlangevin
+
+dataset:
+  image_path: example_data/forecast/
+  label_path: example_data/forecast/
+  size: 128 # Size of the patch to ingest to the model
+  n_classes:
+  n_channels: 1
+  from_uv: False
+  real_data: False
+  power: 2
+  use_zeros: True
+
+comment: toy_run # Comment to use for the logger (W&B)

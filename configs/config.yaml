@@ -1,0 +1,9 @@
+defaults:
+  - generator: generator
+
+ckpt: ""
+output: "outputs"
+batch_size: 50
+guidance_scale: 3.0
+timestep_respacing: 250
+runs_per_sample: 20
