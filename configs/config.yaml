@@ -21,13 +21,14 @@ dataset:
   use_zeros: True
 
 generator:
-  ckpt: 02-09-2024-h19-m13_mse_ddpm_toy_run/last_epoch=29_step=3150.ckpt
+  ckpt: 02-09-2024-h19-m13_mse_ddpm/last_epoch=29_step=3150.ckpt
   output: results/
   guidance_scale: 3.0
   timestep_respacing: 250
   runs_per_sample: 1
   include_val: False
   generation_mode: ddpm # ddpm, ddim, langevin, annlangevin
+  max_batch: 15
 
 trainer:
   auto_lr: False

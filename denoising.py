@@ -24,8 +24,8 @@ def main(cfg: DictConfig) -> None:
 
     output_path = Path(
         cfg.generator.output
-        + f"{cfg.project_name}"
-        + f"_power{cfg['dataset']['power']}"
+        + f"\\cfg.project_name"
+        + f"\\power{cfg['dataset']['power']}_{cfg['model']['loss']}_{cfg['generator']['generation_mode']}"
     )
     output_path.mkdir(exist_ok=True, parents=True)
 
@@ -75,8 +75,9 @@ def main(cfg: DictConfig) -> None:
 
     for i, dl in enumerate(dls):
         for batch_idx, batch in tqdm(enumerate(dl), colour="blue"):
-            print(batch_idx)
 
+            if batch_idx == cfg["generator"]["max_batch"]:
+                break
             images = []
             generated_images = []
             dirty_noisy_list = []
