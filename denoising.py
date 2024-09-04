@@ -24,9 +24,10 @@ def main(cfg: DictConfig) -> None:
 
     output_path = Path(
         cfg.generator.output
-        + f"\\cfg.project_name"
-        + f"\\power{cfg['dataset']['power']}_{cfg['model']['loss']}_{cfg['generator']['generation_mode']}"
+        + f"\\{cfg.project_name}"
+        + f"\\power{cfg['dataset']['power']}_{cfg['model']['loss']}_{cfg['generator']['generator_mode']}"
     )
+    print(output_path)
     output_path.mkdir(exist_ok=True, parents=True)
 
     module = GeneratorModule.load_from_checkpoint(
@@ -60,12 +61,19 @@ def main(cfg: DictConfig) -> None:
         module.size_image,
     )
 
+    generator_model = cfg["generator"]["generator_mode"]
+
     # generate images
-    dls, names = (
-        ([module.val_dataloader(), module.test_dataloader()], ["val", "test"])
-        if cfg.generator.include_val
-        else ([module.test_dataloader()], ["test"])
-    )
+    dls = [module.test_dataloader()]
+    names = ["test"]
+
+    if cfg.generator.include_val:
+        dls.append(module.val_dataloader())
+        names.append("val")
+    if cfg.generator.include_train:
+        dls.append(module.train_dataloader())
+        names.append("train")
+
     try:
         number_of_examples = (len(dls[0]) + len(dls[1])) * cfg.trainer.batch_size
     except:
@@ -95,16 +103,19 @@ def main(cfg: DictConfig) -> None:
                 with torch.no_grad():
                     zero_label_noise = torch.zeros_like(dirty_noisy, device=device)
                     dirty_noisy = torch.cat([dirty_noisy, zero_label_noise], dim=0)
-                    im_out = diffusion.p_sample_loop(
-                        model_fn,
-                        cond=dirty_noisy,
-                        shape=shape,
-                        device=device,
-                        clip_denoised=True,
-                        progress=False,
-                        cond_fn=None,
-                    )[: cfg.trainer.batch_size]
-                    dirty_noisy = dirty_noisy[: cfg.trainer.batch_size]
+                    if generator_model == "ddpm":
+                        im_out = diffusion.p_sample_loop(
+                            model_fn,
+                            cond=dirty_noisy,
+                            shape=shape,
+                            device=device,
+                            clip_denoised=True,
+                            progress=False,
+                            cond_fn=None,
+                        )[: cfg.trainer.batch_size]
+                        dirty_noisy = dirty_noisy[: cfg.trainer.batch_size]
+                    else:
+                        pass
 
                 im_in = torch_to_image_numpy(im_in)
                 im_out = torch_to_image_numpy(im_out)

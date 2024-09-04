@@ -1,8 +1,8 @@
 output_path: results/
 plot_path: plots/
-batch_idx: 14
-dataset_name: test
+batch_idx: 0
+dataset_name: val
 loss: mse
 generation_mode: ddpm
 power: 2
-project_name: ILLUSTRIS
+project_name: INAF

@@ -12,10 +12,11 @@ class SkaDataset(Dataset):
     DIRTY_NOISY_WO_PROCESSING = "dirty"
     TRUE_WO_PROCESSING = "true"
 
-    def __init__(self, folder_images, image_size, power, from_uv):
+    def __init__(self, folder_images, image_size, power, from_uv, listed_imgs=False):
 
         self.path_images = folder_images
-        self.power = power  ######
+        self.listed_imgs = listed_imgs
+        self.power = power
         self._set_folders(folder_images)
         self.test_data = False
         self.im_size = image_size
@@ -23,7 +24,7 @@ class SkaDataset(Dataset):
         self.augment_test = self._get_transforms(image_size)
         self.train = True
 
-        if "forecast" in self.path_images:
+        if not self.listed_imgs:
             self.forecast = ForecastDataset(folder_images, dim=image_size)
         else:
             self.from_uv = from_uv
@@ -49,7 +50,7 @@ class SkaDataset(Dataset):
         )
 
     def __len__(self):
-        if "forecast" in self.path_images:
+        if not self.listed_imgs:
             return len(self.forecast)
         else:
             return len(self.file_list)
@@ -58,14 +59,12 @@ class SkaDataset(Dataset):
         self.train = train
 
     def __getitem__(self, index: int):
-        if "forecast" in self.path_images:
+        if not self.listed_imgs:
             forecastdata = self.forecast.get(index)
             true = forecastdata["gth"][np.newaxis, ...]
             dirty_noisy = forecastdata["img"][np.newaxis, ...]
-
-            const = 0.675125  # 0.00002960064
-            true = true / const
-            dirty_noisy = dirty_noisy / 0.6651986  # 5e-4#3.0e-5
+            true /= np.max(true)
+            dirty_noisy /= np.max(dirty_noisy)
         else:
             file_name = self.file_list[index]
 
@@ -90,7 +89,7 @@ class SkaDataset(Dataset):
                 return dirty_noisy
 
             dirty_noisy = open_dirty_noisy(file_name)
-            dirty_noisy = dirty_noisy / 5e-4  # 3.0e-5
+            dirty_noisy = dirty_noisy / 5e-4
 
         true = np.abs(true)
         true = (true) ** (1.0 / self.power)

@@ -10,8 +10,8 @@ model:
   rescale_learned_sigmas: False
 
 dataset:
-  image_path: example_data/forecast/
-  label_path: example_data/forecast/
+  image_path: data/test/
+  label_path: data/test/
   size: 128
   n_classes:
   n_channels: 1
@@ -26,8 +26,9 @@ generator:
   guidance_scale: 3.0
   timestep_respacing: 250
   runs_per_sample: 1
-  include_val: False
-  generation_mode: ddpm # ddpm, ddim, langevin, annlangevin
+  include_val: True
+  include_train: False
+  generator_mode: ddpm # ddpm, ddim, langevin, annlangevin
   max_batch: 15
 
 trainer:
@@ -47,5 +48,5 @@ trainer:
   checkpoint: checkpoints/
   logging_dir: lightning_logs
 
-project_name: ILLUSTRIS
+project_name: INAF
 comment: toy_run # Comment to use for the logger (W&B)
