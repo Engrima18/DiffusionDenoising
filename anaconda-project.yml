@@ -1,0 +1,38 @@
+name: honor
+channels:
+  - https://conda.anaconda.org/gurobi
+  - defaults
+  - conda-forge
+
+dependencies:
+  - python=3.12.4
+  - pandas
+  - astropy
+  - torchvision
+  - torchaudio
+  - pytorch
+  - pytorch-cuda=11.8
+  - matplotlib
+  - jupyter
+  - conda-forge::pytorch-lightning
+  - scipy
+  - anaconda::scikit-learn
+  - conda-forge::tensorboard
+  - wandb
+  - conda-forge::hydra-core
+  - anaconda-project
+
+commands:
+  denoising:
+    windows: python denoising.py
+    env_spec: default
+  train:
+    windows: python train.py
+    env_spec: default
+  plot:
+    windows: python visual.py
+    env_spec: default
+
+env_specs:
+  default:
+    description: Diffusion denoising for astronomical images.
