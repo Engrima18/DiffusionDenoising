@@ -21,7 +21,7 @@ file_position = os.path.dirname(os.path.realpath(__file__))
 hdu = fits.open(
     os.path.join(
         file_position,
-        "hlsp_illustris_jwst_nircam_mag30-fielda-11-10_f200w_v1_lightcone.fits",
+        "illustris_clean.fits",
     )
 )
 
