@@ -112,7 +112,7 @@ Here we report a sequence of images demonstrating the denoising performances of 
 trained for 20 epochs on some images cropped from ILLUSTRIS: left the noisy input image,
 centre the target ground-truth image, right the model output image.
 
-![alt text](plots\example.png)
+![alt text](plots/example.png)
 
 ## Used Technologies
 
