@@ -60,15 +60,15 @@ cd DiffusionDenoising
 
 ### 2. Install Anaconda Project (if not already installed)
 
-Anaconda Project is used to manage the environment setup.
+The file `env.yml` is used to manage the environment setup.
 
 ```bash
-conda install anaconda-project
+conda conda env create -f env.yml
 ```
 
 ### 3. Create the environment
 
-Once inside the project folder, create the environment using the provided anaconda-project.yaml file:
+Once inside the project folder, activate the environment.
 
 ```bash
 anaconda-project prepare
@@ -83,7 +83,7 @@ There are several commands available in this project, including running differen
 To run the `train.py` script and train a Denoising Diffusion model with all the specifications from the configuration file (you choose the dataset).
 
 ```bash
-anaconda-project run train
+python train.py
 ```
 
 ### 2. Denoising Script
@@ -91,7 +91,7 @@ anaconda-project run train
 To run the `denoising.py` script and starting the denoising process starting from certain input noisy images. In practice with this command you will use some diffusion model checkpoint to generate new images starting from noisy test images.
 
 ```bash
-anaconda-project run denoising
+python denoising.py
 ```
 
 ### 3. Plotting script
@@ -99,7 +99,7 @@ anaconda-project run denoising
 To run the `visual.py` script and plot some results from the above denoising/generation process.
 
 ```bash
-anaconda-project run plot
+python visual.py
 ```
 
 ## Final Results
