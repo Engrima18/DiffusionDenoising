@@ -58,7 +58,7 @@ git clone https://github.com/Engrima18/DiffusionDenoising
 cd DiffusionDenoising
 ```
 
-### 2. Install Anaconda Project (if not already installed)
+### 2. Install the required dependencies and create the `honor` conda environment.
 
 The file `env.yml` is used to manage the environment setup.
 
@@ -68,10 +68,10 @@ conda conda env create -f env.yml
 
 ### 3. Create the environment
 
-Once inside the project folder, activate the environment.
+Activate the environment.
 
 ```bash
-anaconda-project prepare
+conda activate honor
 ```
 
 ## Running the Project
